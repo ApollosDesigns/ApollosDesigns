@@ -10,8 +10,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "@types/react-native": "^0.73.0",
+    "axios": "^1.6.8",
     "react": "18.2.0",
-    "react-native": "0.74.1"
+    "react-native": "0.74.1",
+    "react-native-push-notification": "^8.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -21,14 +25,22 @@
     "@react-native/eslint-config": "0.74.83",
     "@react-native/metro-config": "0.74.83",
     "@react-native/typescript-config": "0.74.83",
-    "@types/react": "^18.2.6",
+    "@types/react": "^18.3.2",
     "@types/react-test-renderer": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.9.0",
+    "@typescript-eslint/parser": "^7.9.0",
     "babel-jest": "^29.6.3",
-    "eslint": "^8.19.0",
+    "eslint": "^8.57.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-native": "^4.1.0",
     "jest": "^29.6.3",
     "prettier": "2.8.8",
     "react-test-renderer": "18.2.0",
-    "typescript": "5.0.4"
+    "typescript": "^5.0.4"
   },
   "engines": {
     "node": ">=18"

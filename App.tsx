@@ -1,117 +1,140 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging from '@react-native-firebase/messaging';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const App = () => {
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [token, setToken] = useState<string | null>(null);
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  useEffect(() => {
+    requestUserPermission();
+    const unsubscribe = messaging().onMessage(async (remoteMessage) => {
+      Alert.alert('Notification', remoteMessage.notification?.body || 'No message body');
+    });
+    return unsubscribe;
+  }, []);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  const requestUserPermission = async () => {
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+    if (enabled) {
+      console.log('Authorization status:', authStatus);
+    }
+  };
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+  const handleRequest = async (
+    url: string,
+    data: object,
+    successMessage: string,
+    errorMessage: string
+  ): Promise<void> => {
+    setLoading(true);
+    try {
+      const response = await axios.post(url, data);
+      const receivedToken: string = response.data.token;
+      if (receivedToken) {
+        setToken(receivedToken);
+        await AsyncStorage.setItem('token', receivedToken);
+        Alert.alert('Success', successMessage);
+      } else {
+        throw new Error('No token received');
+      }
+    } catch (error) {
+      const errorMessageText = error instanceof Error ? error.message : 'An unknown error occurred';
+      Alert.alert('Error', `${errorMessage}: ${errorMessageText}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const register = (): void => {
+    if (email === '' || password === '') {
+      Alert.alert('Error', 'Email and Password cannot be empty');
+      return;
+    }
+    handleRequest('http://192.168.200.150:3000/register', { email, password }, 'Registered successfully', 'Registration failed');
+  };
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const login = (): void => {
+    if (email === '' || password === '') {
+      Alert.alert('Error', 'Email and Password cannot be empty');
+      return;
+    }
+    handleRequest('http://192.168.200.150:3000/login', { email, password }, 'Logged in successfully', 'Login failed');
+  };
+
+  const handleHinge = async (url: string, successMessage: string, errorMessage: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const storedToken = await AsyncStorage.getItem('token');
+      if (!storedToken) throw new Error('No token found');
+      await axios.post(url, {}, { headers: { Authorization: `Bearer ${storedToken}` } });
+      Alert.alert('Success', successMessage);
+    } catch (error) {
+      const errorMessageText = error instanceof Error ? error.message : 'An unknown error occurred';
+      Alert.alert('Error', `${errorMessage}: ${errorMessageText}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const lockHinge = (): void => {
+    handleHinge('http://192.168.200.150:3000/lock', 'Hinge locked', 'Failed to lock hinge');
+  };
+
+  const unlockHinge = (): void => {
+    handleHinge('http://192.168.200.150:3000/unlock', 'Hinge unlocked', 'Failed to unlock hinge');
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <View style={styles.container}>
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <>
+          <Button title="Register" onPress={register} />
+          <Button title="Login" onPress={login} />
+          <Button title="Lock Hinge" onPress={lockHinge} />
+          <Button title="Unlock Hinge" onPress={unlockHinge} />
+        </>
+      )}
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingHorizontal: 8,
   },
 });
 
